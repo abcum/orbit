@@ -26,8 +26,30 @@ type Orbit struct {
 	modules map[string]otto.Value
 }
 
-var globals = make(map[string]global)
-var modules = make(map[string]module)
+type (
+	// Event is used for storing
+	event struct {
+		when string
+		what func(*Orbit)
+	}
+	// Global is a global variable
+	global interface{}
+	// Module is a javascript module
+	module func(*Orbit) (otto.Value, error)
+	// Finder is a package file loader
+	lookup func(*Orbit, []string) (interface{}, string, error)
+)
+
+var (
+	// Finder loads files
+	finder lookup
+	// Events stores events
+	events []event
+	// Globals stores global variables
+	globals = make(map[string]global)
+	// Modules stores registered packages
+	modules = make(map[string]module)
+)
 
 // Add adds a module to the runtime
 func Add(name string, item interface{}) {
@@ -39,27 +61,63 @@ func Add(name string, item interface{}) {
 	}
 }
 
-// Set sets a global variable in the runtime
-func Set(name string, item interface{}) {
+// Def sets a global variable in the runtime
+func Def(name string, item interface{}) {
 	globals[name] = item
 }
 
-func new() *Orbit {
+// OnFile registers a callback for finding required files
+func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
+	finder = call
+}
+
+// OnInit registers a callback for when the program starts up
+func OnInit(call func(*Orbit)) {
+	events = append(events, event{
+		when: "init",
+		what: call,
+	})
+}
+
+// OnExit registers a callback for when the program shuts down
+func OnExit(call func(*Orbit)) {
+	events = append(events, event{
+		when: "exit",
+		what: call,
+	})
+}
+
+// Run executes some code. Code may be a string or a byte slice.
+func Run(code interface{}) (otto.Value, error) {
+	return New().Run(code)
+}
+
+// New creates a new Orbit runtime
+func New() *Orbit {
 	return &Orbit{otto.New(), make(map[string]otto.Value)}
 }
 
-// Run executes some code
-func Run(code string) (otto.Value, error) {
-	return new().init().main(code)
-}
+// Run executes some code. Code may be a string or a byte slice.
+func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 
-func (ctx *Orbit) init() *Orbit {
 	for k, v := range globals {
 		ctx.Set(k, v)
 	}
-	return ctx
-}
 
-func (ctx *Orbit) main(code string) (val otto.Value, err error) {
-	return load(code, ".")(ctx)
+	for _, e := range events {
+		if e.when == "init" {
+			e.what(ctx)
+		}
+	}
+
+	val, err = exec(code, ".")(ctx)
+
+	for _, e := range events {
+		if e.when == "exit" {
+			e.what(ctx)
+		}
+	}
+
+	return
+
 }

@@ -16,10 +16,10 @@ package orbit
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/robertkrimen/otto"
 )
-
-type module func(*Orbit) (otto.Value, error)
 
 func null() module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
@@ -27,29 +27,76 @@ func null() module {
 	}
 }
 
-func find(name, path string) module {
+func find(name string, dir string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
 		if len(name) == 0 {
 			return otto.UndefinedValue(), fmt.Errorf("No module name specified")
 		}
 
-		return otto.UndefinedValue(), fmt.Errorf("Module %s was not found", name)
+		var files []string
+
+		name = path.Clean(name)
+
+		if path.IsAbs(name) == true {
+			if path.Ext(name) != "" {
+				files = append(files, name)
+			}
+			if path.Ext(name) == "" {
+				files = append(files, name+".js")
+				files = append(files, path.Join(name, "index.js"))
+			}
+		}
+
+		if path.IsAbs(name) == false {
+			if path.Ext(name) != "" {
+				files = append(files, path.Join(dir, name))
+			}
+			if path.Ext(name) == "" {
+				files = append(files, path.Join(dir, name)+".js")
+				files = append(files, path.Join(dir, name, "index.js"))
+			}
+		}
+
+		code, file, err := finder(ctx, files)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		return exec(code, file)(ctx)
 
 	}
 }
 
-func load(code, path string) module {
+func (ctx *Orbit) load(name string, path string) (val otto.Value, err error) {
+
+	// Check loaded modules
+	if module, ok := ctx.modules[name]; ok {
+		return module, nil
+	}
+
+	// Check global modules
+	if module, ok := modules[name]; ok {
+		return module(ctx)
+	}
+
+	ctx.modules[name], err = find(name, path)(ctx)
+
+	return ctx.modules[name], err
+
+}
+
+func exec(code interface{}, dir string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
-		data := "(function(module) { var require = module.require; var exports = module.exports;\n" + code + "\n})"
+		data := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;\n", code, "\n})")
 
 		module, _ := ctx.Object(`({exports: {}})`)
 		export, _ := module.Get("exports")
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
-			val, err := ctx.require(arg, path)
+			val, err := ctx.load(arg, dir)
 			if err != nil {
 				ctx.Call("new Error", nil, err.Error())
 			}
@@ -72,23 +119,5 @@ func load(code, path string) module {
 		return
 
 	}
-
-}
-
-func (ctx *Orbit) require(name, path string) (val otto.Value, err error) {
-
-	// Check loaded modules
-	if module, ok := ctx.modules[name]; ok {
-		return module, nil
-	}
-
-	// Check global modules
-	if module, ok := modules[name]; ok {
-		return module(ctx)
-	}
-
-	ctx.modules[name], err = find(name, path)(ctx)
-
-	return ctx.modules[name], err
 
 }
