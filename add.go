@@ -16,17 +16,47 @@ package orbit
 
 import (
 	"io/ioutil"
+	"path/filepath"
+	"strings"
 )
 
 func addModule(name string, item module) {
 	modules[name] = item
 }
 
-func addSource(name string, item string) {
-	data, err := ioutil.ReadFile(item)
-	if err != nil {
-		modules[name] = null()
-		return
+func addSource(name string, file string) {
+
+	if strings.Contains(file, "*") {
+
+		files, _ := filepath.Glob(file)
+
+		for i, file := range files {
+
+			vers := filepath.Base(file)
+
+			data, err := ioutil.ReadFile(file)
+			if err != nil {
+				modules[name+"@"+vers] = null()
+				return
+			}
+			modules[name+"@"+vers] = exec(data, file)
+
+			if i == len(files)-1 {
+				modules[name] = modules[name+"@"+vers]
+				modules[name+"@latest"] = modules[name+"@"+vers]
+			}
+
+		}
+
+	} else {
+
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			modules[name] = null()
+			return
+		}
+		modules[name] = exec(data, file)
+
 	}
-	modules[name] = load(string(data), item)
+
 }
