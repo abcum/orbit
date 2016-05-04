@@ -32,7 +32,9 @@ func addSource(name string, file string) {
 
 		for i, file := range files {
 
-			vers := filepath.Base(file)
+			extn := filepath.Ext(file)
+			full := filepath.Base(file)
+			vers := full[0 : len(full)-len(extn)]
 
 			data, err := ioutil.ReadFile(file)
 			if err != nil {
