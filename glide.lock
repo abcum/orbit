@@ -1,0 +1,13 @@
+hash: 63c0f2ffad68bda8f7a0bb8fca62a95242d254d25faf14169e73534f202d3ddf
+updated: 2016-05-05T12:56:41.325850488+01:00
+imports:
+- name: github.com/robertkrimen/otto
+  version: a55c9c9461afb28e2a38a75de9a03dcac5159514
+  subpackages:
+  - ast
+  - dbg
+  - file
+  - parser
+  - registry
+  - token
+devImports: []
