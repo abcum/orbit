@@ -27,6 +27,24 @@ func null() module {
 	}
 }
 
+func (ctx *Orbit) load(name string, path string) (val otto.Value, err error) {
+
+	// Check loaded modules
+	if module, ok := ctx.modules[name]; ok {
+		return module, nil
+	}
+
+	// Check global modules
+	if module, ok := modules[name]; ok {
+		return module(ctx)
+	}
+
+	ctx.modules[name], err = find(name, path)(ctx)
+
+	return ctx.modules[name], err
+
+}
+
 func find(name string, dir string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
@@ -66,24 +84,6 @@ func find(name string, dir string) module {
 		return exec(code, file)(ctx)
 
 	}
-}
-
-func (ctx *Orbit) load(name string, path string) (val otto.Value, err error) {
-
-	// Check loaded modules
-	if module, ok := ctx.modules[name]; ok {
-		return module, nil
-	}
-
-	// Check global modules
-	if module, ok := modules[name]; ok {
-		return module(ctx)
-	}
-
-	ctx.modules[name], err = find(name, path)(ctx)
-
-	return ctx.modules[name], err
-
 }
 
 func exec(code interface{}, dir string) module {
