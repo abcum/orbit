@@ -22,6 +22,10 @@ import (
 type Orbit struct {
 	// Underlying Otto instance.
 	*otto.Otto
+	// Loop runs pending timers
+	loop chan *Task
+	// Timers used within javascript
+	timers map[*Task]*Task
 	// Module outputs are cached for future use.
 	modules map[string]otto.Value
 }
@@ -94,11 +98,22 @@ func Run(code interface{}) (otto.Value, error) {
 
 // New creates a new Orbit runtime
 func New() *Orbit {
-	return &Orbit{otto.New(), make(map[string]otto.Value)}
+	return &Orbit{
+		Otto:    otto.New(),
+		loop:    make(chan *Task),
+		timers:  make(map[*Task]*Task),
+		modules: make(map[string]otto.Value),
+	}
 }
 
 // Run executes some code. Code may be a string or a byte slice.
 func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
+
+	ctx.Interrupt = make(chan func(), 1)
+
+	ctx.SetStackDepthLimit(20000)
+
+	go quit(ctx)
 
 	for k, v := range globals {
 		ctx.Set(k, v)
@@ -111,6 +126,49 @@ func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 	}
 
 	val, err = exec(code, ".")(ctx)
+	if err != nil {
+		return
+	}
+
+	for {
+
+		select {
+		case <-ctx.Interrupt:
+			panic("Interrupted")
+		case timer := <-ctx.loop:
+			var arguments []interface{}
+			if len(timer.function.ArgumentList) > 2 {
+				tmp := timer.function.ArgumentList[2:]
+				arguments = make([]interface{}, 2+len(tmp))
+				for i, value := range tmp {
+					arguments[i+2] = value
+				}
+			} else {
+				arguments = make([]interface{}, 1)
+			}
+			arguments[0] = timer.function.ArgumentList[0]
+			_, err := ctx.Call(`Function.call.call`, nil, arguments...)
+			if err != nil {
+				for _, timer := range ctx.timers {
+					timer.timer.Stop()
+					delete(ctx.timers, timer)
+					return val, err
+				}
+			}
+			if timer.interval {
+				timer.timer.Reset(timer.duration)
+			} else {
+				delete(ctx.timers, timer)
+			}
+		default:
+			// Escape valve!
+		}
+
+		if len(ctx.timers) == 0 {
+			break
+		}
+
+	}
 
 	for _, e := range events {
 		if e.when == "exit" {
