@@ -86,6 +86,61 @@ func find(name string, dir string) module {
 	}
 }
 
+func main(code interface{}, dir string) module {
+	return func(ctx *Orbit) (val otto.Value, err error) {
+
+		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;\n", code, "\n})")
+
+		module, _ := ctx.Object(`({})`)
+
+		module.Set("id", dir)
+
+		module.Set("loaded", true)
+
+		module.Set("filename", dir)
+
+		module.Set("exports", map[string]interface{}{})
+
+		module.Set("require", func(call otto.FunctionCall) otto.Value {
+			arg := call.Argument(0).String()
+			val, err := ctx.load(arg, dir)
+			if err != nil {
+				ctx.Call("new Error", nil, err.Error())
+			}
+			return val
+		})
+
+		ret, err := ctx.Call(script, nil, module)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		exp, err := module.Get("exports")
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		if exp.IsFunction() {
+			val, err = module.Call("exports")
+			return
+		}
+
+		if exp.IsDefined() {
+			val = exp
+			return
+		}
+
+		if ret.IsDefined() {
+			val = ret
+			return
+		}
+
+		return
+
+	}
+
+}
+
 func exec(code interface{}, dir string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 

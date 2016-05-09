@@ -127,7 +127,7 @@ func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 		}
 	}
 
-	val, err = exec(code, ".")(ctx)
+	val, err = main(code, ".")(ctx)
 	if err != nil {
 		return
 	}
