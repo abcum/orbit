@@ -28,8 +28,57 @@ type Task struct {
 }
 
 func quit(ctx *Orbit) {
-	time.Sleep(10 * time.Second)
-	ctx.Interrupt <- func() {}
+	if ctx.timeout > 0 {
+		ctx.Interrupt = make(chan func(), 1)
+		go func() {
+			time.Sleep(ctx.timeout * time.Millisecond)
+			ctx.Interrupt <- func() {}
+		}()
+	}
+}
+
+func wait(ctx *Orbit) {
+
+	for {
+
+		select {
+		case <-ctx.Interrupt:
+			panic("Interrupted")
+		case timer := <-ctx.loop:
+			var arguments []interface{}
+			if len(timer.function.ArgumentList) > 2 {
+				tmp := timer.function.ArgumentList[2:]
+				arguments = make([]interface{}, 2+len(tmp))
+				for i, value := range tmp {
+					arguments[i+2] = value
+				}
+			} else {
+				arguments = make([]interface{}, 1)
+			}
+			arguments[0] = timer.function.ArgumentList[0]
+			_, err := ctx.Call(`Function.call.call`, nil, arguments...)
+			if err != nil {
+				for _, timer := range ctx.timers {
+					timer.timer.Stop()
+					delete(ctx.timers, timer)
+					panic(err)
+				}
+			}
+			if timer.interval {
+				timer.timer.Reset(timer.duration)
+			} else {
+				delete(ctx.timers, timer)
+			}
+		default:
+			// Escape valve!
+		}
+
+		if len(ctx.timers) == 0 {
+			break
+		}
+
+	}
+
 }
 
 func init() {
