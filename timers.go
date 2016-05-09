@@ -20,6 +20,7 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
+// Task represents a task on the timer channel
 type Task struct {
 	timer    *time.Timer
 	interval bool
