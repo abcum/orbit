@@ -44,7 +44,9 @@ func wait(ctx *Orbit) {
 
 		select {
 		case <-ctx.Interrupt:
-			panic("Interrupted")
+			for timer := range ctx.timers {
+				delete(ctx.timers, timer)
+			}
 		case timer := <-ctx.loop:
 			var arguments []interface{}
 			if len(timer.function.ArgumentList) > 2 {
