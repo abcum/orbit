@@ -29,8 +29,8 @@ type Task struct {
 }
 
 func quit(ctx *Orbit) {
+	ctx.Interrupt = make(chan func(), 1)
 	if ctx.timeout > 0 {
-		ctx.Interrupt = make(chan func(), 1)
 		go func() {
 			time.Sleep(ctx.timeout * time.Millisecond)
 			ctx.Interrupt <- func() {}
