@@ -69,11 +69,6 @@ func Add(name string, item interface{}) {
 	}
 }
 
-// Def sets a global variable in the runtime
-func Def(name string, item interface{}) {
-	globals[name] = item
-}
-
 // OnFile registers a callback for finding required files
 func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
 	finder = call
@@ -110,6 +105,13 @@ func New() *Orbit {
 	}
 }
 
+// Def sets a global variable in the runtime
+func (ctx *Orbit) Def(name string, item interface{}) {
+	obj, _ := ctx.Get("global")
+	obj.Object().Set(name, item)
+	ctx.Set(name, item)
+}
+
 // Run executes some code. Code may be a string or a byte slice.
 func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 
@@ -120,7 +122,7 @@ func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 	ctx.Object(`global = {}`)
 
 	for k, v := range globals {
-		ctx.Set(k, v)
+		ctx.Def(k, v)
 	}
 
 	for _, e := range events {
