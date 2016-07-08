@@ -64,7 +64,11 @@ func wait(ctx *Orbit) {
 				for _, timer := range ctx.timers {
 					timer.timer.Stop()
 					delete(ctx.timers, timer)
-					panic(err)
+				}
+				for _, e := range faults {
+					if e.when == "fail" {
+						e.what(ctx, err)
+					}
 				}
 			}
 			if timer.interval {
