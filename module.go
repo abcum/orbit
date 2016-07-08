@@ -167,17 +167,29 @@ func exec(code interface{}, full string) module {
 			return val
 		})
 
-		ret, err := ctx.Call(data, export, module)
+		ret, err := ctx.Call(script, nil, module)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
 
-		if ret.IsDefined() {
-			val = ret
+		exp, err := module.Get("exports")
+		if err != nil {
+			return otto.UndefinedValue(), err
 		}
 
-		if ret.IsUndefined() {
-			val, err = module.Get("exports")
+		if exp.IsFunction() {
+			val, err = module.Call("exports")
+			return
+		}
+
+		if exp.IsDefined() {
+			val = exp
+			return
+		}
+
+		if ret.IsDefined() {
+			val = ret
+			return
 		}
 
 		return
