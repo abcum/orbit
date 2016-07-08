@@ -27,22 +27,24 @@ func null() module {
 	}
 }
 
-func (ctx *Orbit) load(name string, path string) (val otto.Value, err error) {
+func load(name string, fold string) module {
+	return func(ctx *Orbit) (val otto.Value, err error) {
 
-	// Check loaded modules
-	if module, ok := ctx.modules[name]; ok {
-		return module, nil
+		// Check loaded modules
+		if module, ok := ctx.modules[name]; ok {
+			return module, nil
+		}
+
+		// Check global modules
+		if module, ok := modules[name]; ok {
+			return module(ctx)
+		}
+
+		ctx.modules[name], err = find(name, fold)(ctx)
+
+		return ctx.modules[name], err
+
 	}
-
-	// Check global modules
-	if module, ok := modules[name]; ok {
-		return module(ctx)
-	}
-
-	ctx.modules[name], err = find(name, path)(ctx)
-
-	return ctx.modules[name], err
-
 }
 
 func find(name string, fold string) module {
@@ -106,7 +108,7 @@ func main(code interface{}, full string) module {
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
-			val, err := ctx.load(arg, dir)
+			val, err := load(arg, fold)(ctx)
 			if err != nil {
 				ctx.Call("new Error", nil, err.Error())
 			}
@@ -162,7 +164,7 @@ func exec(code interface{}, full string) module {
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
-			val, err := ctx.load(arg, dir)
+			val, err := load(arg, fold)(ctx)
 			if err != nil {
 				ctx.Call("new Error", nil, err.Error())
 			}
