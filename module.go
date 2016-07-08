@@ -45,7 +45,7 @@ func (ctx *Orbit) load(name string, path string) (val otto.Value, err error) {
 
 }
 
-func find(name string, dir string) module {
+func find(name string, fold string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
 		if len(name) == 0 {
@@ -68,11 +68,11 @@ func find(name string, dir string) module {
 
 		if path.IsAbs(name) == false {
 			if path.Ext(name) != "" {
-				files = append(files, path.Join(dir, name))
+				files = append(files, path.Join(fold, name))
 			}
 			if path.Ext(name) == "" {
-				files = append(files, path.Join(dir, name)+".js")
-				files = append(files, path.Join(dir, name, "index.js"))
+				files = append(files, path.Join(fold, name)+".js")
+				files = append(files, path.Join(fold, name, "index.js"))
 			}
 		}
 
@@ -86,20 +86,23 @@ func find(name string, dir string) module {
 	}
 }
 
-func main(code interface{}, dir string) module {
+func main(code interface{}, full string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
-		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;\n", code, "\n})")
+		fold, file := path.Split(full)
+
+		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;", code, "})")
 
 		module, _ := ctx.Object(`({})`)
 
-		module.Set("id", dir)
-
+		module.Set("id", full)
 		module.Set("loaded", true)
+		module.Set("filename", full)
 
-		module.Set("filename", dir)
 
 		module.Set("exports", map[string]interface{}{})
+		ctx.Set("__dirname", fold)
+		ctx.Set("__filename", file)
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
@@ -141,13 +144,21 @@ func main(code interface{}, dir string) module {
 
 }
 
-func exec(code interface{}, dir string) module {
+func exec(code interface{}, full string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
-		data := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;\n", code, "\n})")
+		fold, file := path.Split(full)
 
-		module, _ := ctx.Object(`({exports: {}})`)
-		export, _ := module.Get("exports")
+		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;", code, "})")
+
+		module, _ := ctx.Object(`({})`)
+
+		module.Set("id", full)
+		module.Set("loaded", true)
+		module.Set("filename", full)
+
+		ctx.Set("__dirname", fold)
+		ctx.Set("__filename", file)
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()

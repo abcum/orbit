@@ -91,8 +91,8 @@ func OnExit(call func(*Orbit)) {
 }
 
 // Run executes some code. Code may be a string or a byte slice.
-func Run(code interface{}) (otto.Value, error) {
-	return New().Run(code)
+func Run(name string, code interface{}) (otto.Value, error) {
+	return New().Run(name, code)
 }
 
 // New creates a new Orbit runtime
@@ -113,7 +113,7 @@ func (ctx *Orbit) Def(name string, item interface{}) {
 }
 
 // Run executes some code. Code may be a string or a byte slice.
-func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
+func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error) {
 
 	ctx.SetStackDepthLimit(20000)
 
@@ -131,7 +131,7 @@ func (ctx *Orbit) Run(code interface{}) (val otto.Value, err error) {
 		}
 	}
 
-	val, err = main(code, ".")(ctx)
+	val, err = main(code, name)(ctx)
 	if err != nil {
 		return
 	}
