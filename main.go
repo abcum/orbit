@@ -24,6 +24,8 @@ import (
 type Orbit struct {
 	// Underlying Otto instance.
 	*otto.Otto
+	// External runtime variables.
+	Vars map[string]interface{}
 	// Loop runs pending timers
 	loop chan *Task
 	// Timers used within javascript
@@ -99,6 +101,7 @@ func Run(name string, code interface{}) (otto.Value, error) {
 func New() *Orbit {
 	return &Orbit{
 		Otto:    otto.New(),
+		Vars:    make(map[string]interface{}),
 		loop:    make(chan *Task),
 		timers:  make(map[*Task]*Task),
 		modules: make(map[string]otto.Value),
