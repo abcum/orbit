@@ -37,10 +37,15 @@ type Orbit struct {
 }
 
 type (
-	// Event is used for storing
+	// Event is used for storing event callbacks
 	event struct {
 		when string
 		what func(*Orbit)
+	}
+	// Fault is used for storing error callbacks
+	fault struct {
+		when string
+		what func(*Orbit, error)
 	}
 	// Global is a global variable
 	global interface{}
@@ -55,6 +60,8 @@ var (
 	finder lookup
 	// Events stores events
 	events []event
+	// Events stores events
+	faults []fault
 	// Globals stores global variables
 	globals = make(map[string]global)
 	// Modules stores registered packages
@@ -80,6 +87,14 @@ func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
 func OnInit(call func(*Orbit)) {
 	events = append(events, event{
 		when: "init",
+		what: call,
+	})
+}
+
+// OnFail registers a callback for when the program encounters and error
+func OnFail(call func(*Orbit, error)) {
+	faults = append(faults, fault{
+		when: "fail",
 		what: call,
 	})
 }
