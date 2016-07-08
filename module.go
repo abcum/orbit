@@ -56,8 +56,6 @@ func find(name string, fold string) module {
 
 		var files []string
 
-		name = path.Clean(name)
-
 		if path.IsAbs(name) == true {
 			if path.Ext(name) != "" {
 				files = append(files, name)
