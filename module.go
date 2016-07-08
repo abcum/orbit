@@ -99,8 +99,6 @@ func main(code interface{}, full string) module {
 		module.Set("loaded", true)
 		module.Set("filename", full)
 
-
-		module.Set("exports", map[string]interface{}{})
 		ctx.Set("__dirname", fold)
 		ctx.Set("__filename", file)
 
