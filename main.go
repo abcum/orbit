@@ -137,8 +137,6 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 
 	quit(ctx) // Set a timeout
 
-	ctx.Object(`global = {}`)
-
 	for k, v := range globals {
 		ctx.Def(k, v)
 	}
