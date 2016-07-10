@@ -37,8 +37,6 @@ type Orbit struct {
 }
 
 type (
-	// Global is a global variable
-	global interface{}
 	// Module is a javascript module
 	module func(*Orbit) (otto.Value, error)
 	// Finder is a package file loader
@@ -51,8 +49,6 @@ var (
 	exits []func(*Orbit)
 	fails []func(*Orbit, error)
 	// Finder loads files
-	// Globals stores global variables
-	globals = make(map[string]global)
 	// Modules stores registered packages
 	modules = make(map[string]module)
 )
@@ -112,9 +108,6 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 
 	quit(ctx) // Set a timeout
 
-	for k, v := range globals {
-		ctx.Def(k, v)
-	}
 
 	// Process init callbacks
 	for _, e := range inits {
