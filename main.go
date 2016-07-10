@@ -39,8 +39,6 @@ type Orbit struct {
 type (
 	// Module is a javascript module
 	module func(*Orbit) (otto.Value, error)
-	// Finder is a package file loader
-	lookup func(*Orbit, []string) (interface{}, string, error)
 )
 
 var (
@@ -49,6 +47,7 @@ var (
 	exits []func(*Orbit)
 	fails []func(*Orbit, error)
 	// Finder loads files
+	finder func(*Orbit, []string) (interface{}, string, error)
 	// Modules stores registered packages
 	modules = make(map[string]module)
 )
