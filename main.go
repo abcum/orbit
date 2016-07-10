@@ -83,14 +83,22 @@ func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
 }
 
 // New creates a new Orbit runtime
-func New() *Orbit {
-	return &Orbit{
-		Otto:    otto.New(),
-		Vars:    make(map[string]interface{}),
-		loop:    make(chan *Task),
-		timers:  make(map[*Task]*Task),
-		modules: make(map[string]otto.Value),
+func New(timeout time.Duration) *Orbit {
+
+	orbit := &Orbit{
+		Otto:      otto.New(),
+		Vars:      make(map[string]interface{}),
+		loop:      make(chan *Task),
+		timers:    make(map[*Task]*Task),
+		modules:   make(map[string]otto.Value),
+		timeout:   timeout * time.Millisecond,
+		forcequit: make(chan func(), 1),
 	}
+
+	orbit.Interrupt = make(chan func(), 1)
+
+	return orbit
+
 }
 
 // Def sets a global variable in the runtime
