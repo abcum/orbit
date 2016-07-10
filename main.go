@@ -28,12 +28,16 @@ type Orbit struct {
 	Vars map[string]interface{}
 	// Loop runs pending timers
 	loop chan *Task
-	// Timers used within javascript
+	// Timeout timer
+	timer *time.Timer
+	// Runtime timers
 	timers map[*Task]*Task
 	// Timeout sets a timeout
 	timeout time.Duration
 	// Module outputs are cached for future use.
 	modules map[string]otto.Value
+	// Channel for detecting runtime timeouts
+	forcequit chan func()
 }
 
 type (
@@ -113,8 +117,8 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 
 	ctx.SetStackDepthLimit(20000)
 
-	quit(ctx) // Set a timeout
-
+	// Set a timeout
+	ctx.tick()
 
 	// Process init callbacks
 	for _, e := range inits {
@@ -126,7 +130,8 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 		return
 	}
 
-	wait(ctx) // Wait for timers
+	// Wait for timers
+	err = ctx.wait()
 
 	// Process exit callbacks
 	for _, e := range exits {

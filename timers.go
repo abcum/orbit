@@ -15,6 +15,7 @@
 package orbit
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/robertkrimen/otto"
@@ -28,25 +29,36 @@ type Task struct {
 	function otto.FunctionCall
 }
 
-func quit(ctx *Orbit) {
-	ctx.Interrupt = make(chan func(), 1)
+func (ctx *Orbit) tick() {
 	if ctx.timeout > 0 {
-		go func() {
-			time.Sleep(ctx.timeout * time.Millisecond)
+		ctx.timer = time.AfterFunc(ctx.timeout, func() {
+			ctx.forcequit <- func() {}
 			ctx.Interrupt <- func() {}
-		}()
+		})
 	}
 }
 
-func wait(ctx *Orbit) {
+func (ctx *Orbit) wait() (err error) {
 
 	for {
 
 		select {
 		case <-ctx.Interrupt:
+		case <-ctx.forcequit:
+
+			ctx.timer.Stop()
+
+			for _, e := range fails {
+				go e(ctx, err)
+			}
+
 			for timer := range ctx.timers {
+				timer.timer.Stop()
 				delete(ctx.timers, timer)
 			}
+
+			return fmt.Errorf("Script timed out")
+
 		case timer := <-ctx.loop:
 			var arguments []interface{}
 			if len(timer.function.ArgumentList) > 2 {
