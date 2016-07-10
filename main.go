@@ -37,16 +37,6 @@ type Orbit struct {
 }
 
 type (
-	// Event is used for storing event callbacks
-	event struct {
-		when string
-		what func(*Orbit)
-	}
-	// Fault is used for storing error callbacks
-	fault struct {
-		when string
-		what func(*Orbit, error)
-	}
 	// Global is a global variable
 	global interface{}
 	// Module is a javascript module
@@ -56,12 +46,11 @@ type (
 )
 
 var (
+	// Event groups
+	inits []func(*Orbit)
+	exits []func(*Orbit)
+	fails []func(*Orbit, error)
 	// Finder loads files
-	finder lookup
-	// Events stores events
-	events []event
-	// Events stores events
-	faults []fault
 	// Globals stores global variables
 	globals = make(map[string]global)
 	// Modules stores registered packages
@@ -78,38 +67,24 @@ func Add(name string, item interface{}) {
 	}
 }
 
-// OnFile registers a callback for finding required files
-func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
-	finder = call
-}
-
 // OnInit registers a callback for when the program starts up
 func OnInit(call func(*Orbit)) {
-	events = append(events, event{
-		when: "init",
-		what: call,
-	})
-}
-
-// OnFail registers a callback for when the program encounters and error
-func OnFail(call func(*Orbit, error)) {
-	faults = append(faults, fault{
-		when: "fail",
-		what: call,
-	})
+	inits = append(inits, call)
 }
 
 // OnExit registers a callback for when the program shuts down
 func OnExit(call func(*Orbit)) {
-	events = append(events, event{
-		when: "exit",
-		what: call,
-	})
+	exits = append(exits, call)
 }
 
-// Run executes some code. Code may be a string or a byte slice.
-func Run(name string, code interface{}) (otto.Value, error) {
-	return New().Run(name, code)
+// OnFail registers a callback for when the program encounters and error
+func OnFail(call func(*Orbit, error)) {
+	fails = append(fails, call)
+}
+
+// OnFile registers a callback for finding required files
+func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
+	finder = call
 }
 
 // New creates a new Orbit runtime
@@ -141,10 +116,9 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 		ctx.Def(k, v)
 	}
 
-	for _, e := range events {
-		if e.when == "init" {
-			e.what(ctx)
-		}
+	// Process init callbacks
+	for _, e := range inits {
+		e(ctx)
 	}
 
 	val, err = main(code, name)(ctx)
@@ -154,10 +128,9 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 
 	wait(ctx) // Wait for timers
 
-	for _, e := range events {
-		if e.when == "exit" {
-			e.what(ctx)
-		}
+	// Process exit callbacks
+	for _, e := range exits {
+		e(ctx)
 	}
 
 	return
