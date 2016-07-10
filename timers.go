@@ -40,10 +40,21 @@ func (ctx *Orbit) tick() {
 
 func (ctx *Orbit) wait() (err error) {
 
-	for {
+	for len(ctx.timers) > 0 {
 
 		select {
+
 		case <-ctx.Interrupt:
+
+			ctx.timer.Stop()
+
+			for timer := range ctx.timers {
+				timer.timer.Stop()
+				delete(ctx.timers, timer)
+			}
+
+			return nil
+
 		case <-ctx.forcequit:
 
 			ctx.timer.Stop()
@@ -60,43 +71,44 @@ func (ctx *Orbit) wait() (err error) {
 			return fmt.Errorf("Script timed out")
 
 		case timer := <-ctx.loop:
-			var arguments []interface{}
-			if len(timer.function.ArgumentList) > 2 {
-				tmp := timer.function.ArgumentList[2:]
-				arguments = make([]interface{}, 2+len(tmp))
-				for i, value := range tmp {
-					arguments[i+2] = value
+
+			args := make([]interface{}, len(timer.function.ArgumentList))
+			for i, v := range timer.function.ArgumentList {
+				if i != 1 {
+					args[i] = v
 				}
-			} else {
-				arguments = make([]interface{}, 1)
 			}
-			arguments[0] = timer.function.ArgumentList[0]
-			_, err := ctx.Call(`Function.call.call`, nil, arguments...)
-			if err != nil {
+
+			if _, err := ctx.Call(`Function.call.call`, nil, args...); err != nil {
+
+				ctx.timer.Stop()
+
+				for _, e := range fails {
+					go e(ctx, err)
+				}
+
 				for _, timer := range ctx.timers {
 					timer.timer.Stop()
 					delete(ctx.timers, timer)
 				}
-				for _, e := range faults {
-					if e.when == "fail" {
-						e.what(ctx, err)
-					}
-				}
+
+				return err
+
 			}
+
 			if timer.interval {
 				timer.timer.Reset(timer.duration)
 			} else {
 				delete(ctx.timers, timer)
 			}
-		default:
-			// Escape valve!
-		}
 
-		if len(ctx.timers) == 0 {
-			break
 		}
 
 	}
+
+	ctx.timer.Stop()
+
+	return
 
 }
 
