@@ -106,8 +106,6 @@ func (ctx *Orbit) wait() (err error) {
 
 	}
 
-	ctx.timer.Stop()
-
 	return
 
 }
