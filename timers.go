@@ -81,7 +81,9 @@ func (ctx *Orbit) wait() (err error) {
 
 			if _, err := ctx.Call(`Function.call.call`, nil, args...); err != nil {
 
-				ctx.timer.Stop()
+				if ctx.timer != nil {
+					ctx.timer.Stop()
+				}
 
 				for _, e := range fails {
 					go e(ctx, err)
@@ -104,6 +106,10 @@ func (ctx *Orbit) wait() (err error) {
 
 		}
 
+	}
+
+	if ctx.timer != nil {
+		ctx.timer.Stop()
 	}
 
 	return
