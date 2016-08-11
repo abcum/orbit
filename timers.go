@@ -46,7 +46,9 @@ func (ctx *Orbit) wait() (err error) {
 
 		case <-ctx.Interrupt:
 
-			ctx.timer.Stop()
+			if ctx.timer != nil {
+				ctx.timer.Stop()
+			}
 
 			for timer := range ctx.timers {
 				timer.timer.Stop()
@@ -57,7 +59,9 @@ func (ctx *Orbit) wait() (err error) {
 
 		case <-ctx.forcequit:
 
-			ctx.timer.Stop()
+			if ctx.timer != nil {
+				ctx.timer.Stop()
+			}
 
 			for _, e := range fails {
 				go e(ctx, err)
