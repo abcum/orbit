@@ -61,6 +61,8 @@ func Add(name string, item interface{}) {
 	switch what := item.(type) {
 	case string:
 		addSource(name, what)
+	case []byte:
+		addSource(name, what)
 	case func(*Orbit) (otto.Value, error):
 		addModule(name, what)
 	}
