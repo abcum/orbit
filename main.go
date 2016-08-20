@@ -27,11 +27,11 @@ type Orbit struct {
 	// External runtime variables.
 	Vars map[string]interface{}
 	// Loop runs pending timers
-	loop chan *Task
+	loop chan *task
 	// Timeout timer
 	timer *time.Timer
 	// Runtime timers
-	timers map[*Task]*Task
+	timers map[*task]*task
 	// Timeout sets a timeout
 	timeout time.Duration
 	// Module outputs are cached for future use.
@@ -94,8 +94,8 @@ func New(timeout time.Duration) *Orbit {
 	orbit := &Orbit{
 		Otto:      otto.New(),
 		Vars:      make(map[string]interface{}),
-		loop:      make(chan *Task),
-		timers:    make(map[*Task]*Task),
+		loop:      make(chan *task),
+		timers:    make(map[*task]*task),
 		modules:   make(map[string]otto.Value),
 		timeout:   timeout * time.Millisecond,
 		forcequit: make(chan func(), 1),

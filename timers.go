@@ -21,8 +21,8 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-// Task represents a task on the timer channel
-type Task struct {
+// task represents a task on the timer channel
+type task struct {
 	timer    *time.Timer
 	interval bool
 	duration time.Duration
@@ -131,7 +131,7 @@ func init() {
 				delay = 1
 			}
 
-			timer := &Task{
+			timer := &task{
 				function: call,
 				interval: false,
 				duration: time.Duration(delay) * time.Millisecond,
@@ -159,7 +159,7 @@ func init() {
 				delay = 1
 			}
 
-			timer := &Task{
+			timer := &task{
 				function: call,
 				interval: true,
 				duration: time.Duration(delay) * time.Millisecond,
@@ -182,7 +182,7 @@ func init() {
 
 		ctx.Set("setImmediate", func(call otto.FunctionCall) otto.Value {
 
-			timer := &Task{
+			timer := &task{
 				function: call,
 				interval: false,
 				duration: time.Millisecond,
@@ -205,7 +205,7 @@ func init() {
 
 		ctx.Set("clearTimeout", func(call otto.FunctionCall) otto.Value {
 			timer, _ := call.Argument(0).Export()
-			if timer, ok := timer.(*Task); ok {
+			if timer, ok := timer.(*task); ok {
 				timer.timer.Stop()
 				delete(ctx.timers, timer)
 			}
@@ -214,7 +214,7 @@ func init() {
 
 		ctx.Set("clearImmediate", func(call otto.FunctionCall) otto.Value {
 			timer, _ := call.Argument(0).Export()
-			if timer, ok := timer.(*Task); ok {
+			if timer, ok := timer.(*task); ok {
 				timer.timer.Stop()
 				delete(ctx.timers, timer)
 			}
