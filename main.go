@@ -70,6 +70,10 @@ func Add(name string, item interface{}) {
 	}
 }
 
+func Find(ctx *Orbit, files []string) (interface{}, string, error) {
+	return finder(ctx, files)
+}
+
 // OnInit registers a callback for when the program starts up
 func OnInit(call func(*Orbit)) {
 	inits = append(inits, call)
