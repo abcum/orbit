@@ -21,6 +21,11 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
+var (
+	beg = "(function(module) { var require = module.require; var exports = module.exports; var __dirname = module.__dirname; var __filename = module.__filename;"
+	end = "})"
+)
+
 func null() module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 		return otto.UndefinedValue(), nil
@@ -91,16 +96,15 @@ func main(code interface{}, full string) module {
 
 		fold, file := path.Split(full)
 
-		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;", code, "})")
+		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
 		module, _ := ctx.Object(`({})`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
 		module.Set("filename", full)
-
-		ctx.Set("__dirname", fold)
-		ctx.Set("__filename", file)
+		module.Set("__dirname", fold)
+		module.Set("__filename", file)
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
@@ -147,16 +151,15 @@ func exec(code interface{}, full string) module {
 
 		fold, file := path.Split(full)
 
-		script := fmt.Sprintf("%s\n%s\n%s", "(function(module) { var require = module.require; var exports = module.exports;", code, "})")
+		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
 		module, _ := ctx.Object(`({})`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
 		module.Set("filename", full)
-
-		ctx.Set("__dirname", fold)
-		ctx.Set("__filename", file)
+		module.Set("__dirname", fold)
+		module.Set("__filename", file)
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
