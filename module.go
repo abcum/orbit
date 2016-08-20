@@ -115,7 +115,17 @@ func main(code interface{}, full string) module {
 			return val
 		})
 
-		ret, err := ctx.Call(script, nil, module)
+		sct, err := ctx.Compile(full, script)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		run, err := ctx.Otto.Run(sct)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		ret, err := run.Call(run, module)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
@@ -170,7 +180,17 @@ func exec(code interface{}, full string) module {
 			return val
 		})
 
-		ret, err := ctx.Call(script, nil, module)
+		sct, err := ctx.Compile(full, script)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		run, err := ctx.Otto.Run(sct)
+		if err != nil {
+			return otto.UndefinedValue(), err
+		}
+
+		ret, err := run.Call(run, module)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
