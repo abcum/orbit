@@ -110,7 +110,7 @@ func main(code interface{}, full string) module {
 			arg := call.Argument(0).String()
 			val, err := load(arg, fold)(ctx)
 			if err != nil {
-				ctx.Call("new Error", nil, err.Error())
+				panic(err)
 			}
 			return val
 		})
@@ -175,7 +175,7 @@ func exec(code interface{}, full string) module {
 			arg := call.Argument(0).String()
 			val, err := load(arg, fold)(ctx)
 			if err != nil {
-				ctx.Call("new Error", nil, err.Error())
+				panic(err)
 			}
 			return val
 		})

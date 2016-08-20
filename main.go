@@ -26,6 +26,10 @@ type Orbit struct {
 	*otto.Otto
 	// External runtime variables.
 	Vars map[string]interface{}
+	// done
+	done bool
+	// quit
+	quit chan error
 	// Loop runs pending timers
 	loop chan *task
 	// Timeout timer
@@ -36,8 +40,6 @@ type Orbit struct {
 	timeout time.Duration
 	// Module outputs are cached for future use.
 	modules map[string]otto.Value
-	// Channel for detecting runtime timeouts
-	forcequit chan func()
 }
 
 type (
@@ -92,13 +94,14 @@ func OnFile(call func(*Orbit, []string) (interface{}, string, error)) {
 func New(timeout time.Duration) *Orbit {
 
 	orbit := &Orbit{
-		Otto:      otto.New(),
-		Vars:      make(map[string]interface{}),
-		loop:      make(chan *task),
-		timers:    make(map[*task]*task),
-		modules:   make(map[string]otto.Value),
-		timeout:   timeout * time.Millisecond,
-		forcequit: make(chan func(), 1),
+		Otto:    otto.New(),
+		Vars:    make(map[string]interface{}),
+		done:    false,
+		quit:    make(chan error),
+		loop:    make(chan *task),
+		timers:  make(map[*task]*task),
+		modules: make(map[string]otto.Value),
+		timeout: timeout * time.Millisecond,
 	}
 
 	orbit.Interrupt = make(chan func(), 1)
@@ -117,30 +120,72 @@ func (ctx *Orbit) Def(name string, item interface{}) {
 // Run executes some code. Code may be a string or a byte slice.
 func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error) {
 
+	defer func() {
+
+		var ok bool
+
+		if err, ok = recover().(error); ok {
+			ctx.fail(err)
+		}
+
+		ctx.exit()
+
+		if ctx.timer != nil {
+			ctx.timer.Stop()
+		}
+
+		for timer := range ctx.timers {
+			timer.timer.Stop()
+			delete(ctx.timers, timer)
+		}
+
+	}()
+
 	ctx.SetStackDepthLimit(20000)
 
-	// Set a timeout
 	ctx.tick()
 
-	// Process init callbacks
-	for _, e := range inits {
-		e(ctx)
-	}
+	ctx.init()
 
 	// Run main code
 	val, err = main(code, name)(ctx)
 	if err != nil {
-		return
+		if !ctx.done {
+			panic(err)
+		}
 	}
 
 	// Wait for timers
 	err = ctx.wait()
-
-	// Process exit callbacks
-	for _, e := range exits {
-		e(ctx)
+	if err != nil {
+		if !ctx.done {
+			panic(err)
+		}
 	}
 
 	return
 
+}
+
+func (ctx *Orbit) Quit(err error) {
+	ctx.done = true
+	ctx.quit <- err
+}
+
+func (ctx *Orbit) init() {
+	for _, e := range inits {
+		e(ctx)
+	}
+}
+
+func (ctx *Orbit) exit() {
+	for _, e := range exits {
+		e(ctx)
+	}
+}
+
+func (ctx *Orbit) fail(err error) {
+	for _, e := range fails {
+		e(ctx, err)
+	}
 }

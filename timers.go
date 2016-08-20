@@ -32,47 +32,23 @@ type task struct {
 func (ctx *Orbit) tick() {
 	if ctx.timeout > 0 {
 		ctx.timer = time.AfterFunc(ctx.timeout, func() {
-			ctx.forcequit <- func() {}
-			ctx.Interrupt <- func() {}
+			err := fmt.Errorf("Script timeout")
+			ctx.Quit(err)
 		})
 	}
 }
 
 func (ctx *Orbit) wait() (err error) {
 
-	for len(ctx.timers) > 0 {
+	for {
 
 		select {
 
-		case <-ctx.Interrupt:
+		default:
 
-			if ctx.timer != nil {
-				ctx.timer.Stop()
-			}
+		case err := <-ctx.quit:
 
-			for timer := range ctx.timers {
-				timer.timer.Stop()
-				delete(ctx.timers, timer)
-			}
-
-			return nil
-
-		case <-ctx.forcequit:
-
-			if ctx.timer != nil {
-				ctx.timer.Stop()
-			}
-
-			for _, e := range fails {
-				go e(ctx, err)
-			}
-
-			for timer := range ctx.timers {
-				timer.timer.Stop()
-				delete(ctx.timers, timer)
-			}
-
-			return fmt.Errorf("Script timed out")
+			panic(err)
 
 		case timer := <-ctx.loop:
 
@@ -84,22 +60,7 @@ func (ctx *Orbit) wait() (err error) {
 			}
 
 			if _, err := ctx.Call(`Function.call.call`, nil, args...); err != nil {
-
-				if ctx.timer != nil {
-					ctx.timer.Stop()
-				}
-
-				for _, e := range fails {
-					go e(ctx, err)
-				}
-
-				for _, timer := range ctx.timers {
-					timer.timer.Stop()
-					delete(ctx.timers, timer)
-				}
-
-				return err
-
+				panic(err)
 			}
 
 			if timer.interval {
@@ -108,6 +69,10 @@ func (ctx *Orbit) wait() (err error) {
 				delete(ctx.timers, timer)
 			}
 
+		}
+
+		if len(ctx.timers) == 0 {
+			break
 		}
 
 	}
