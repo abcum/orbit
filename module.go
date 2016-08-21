@@ -56,10 +56,7 @@ func find(name string, fold string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
 		if len(name) == 0 {
-			return otto.UndefinedValue(), &Error{
-				fmt.Sprintf("Module '%s' not found", name),
-				ctx.Context(),
-			}
+			panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
 		}
 
 		var files []string
@@ -86,10 +83,7 @@ func find(name string, fold string) module {
 
 		code, file, err := finder(ctx, files)
 		if err != nil {
-			return otto.UndefinedValue(), &Error{
-				fmt.Sprintf("Module '%s' not found", name),
-				ctx.Context(),
-			}
+			panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
 		}
 
 		return exec(code, file)(ctx)
