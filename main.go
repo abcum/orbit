@@ -26,8 +26,6 @@ type Orbit struct {
 	*otto.Otto
 	// External runtime variables.
 	Vars map[string]interface{}
-	// done
-	done bool
 	// quit
 	quit chan error
 	// Loop runs pending timers
@@ -100,7 +98,6 @@ func New(timeout time.Duration) *Orbit {
 	orbit := &Orbit{
 		Otto:    otto.New(),
 		Vars:    make(map[string]interface{}),
-		done:    false,
 		quit:    make(chan error),
 		loop:    make(chan *task),
 		timers:  make(map[*task]*task),
@@ -154,17 +151,13 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 	// Run main code
 	val, err = main(code, name)(ctx)
 	if err != nil {
-		if !ctx.done {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	// Wait for timers
 	err = ctx.wait()
 	if err != nil {
-		if !ctx.done {
-			panic(err)
-		}
+		panic(err)
 	}
 
 	return
@@ -172,8 +165,7 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 }
 
 func (ctx *Orbit) Quit(err error) {
-	ctx.done = true
-	ctx.quit <- err
+	panic(err)
 }
 
 func (ctx *Orbit) init() {

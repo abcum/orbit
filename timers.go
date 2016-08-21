@@ -33,7 +33,10 @@ func (ctx *Orbit) tick() {
 	if ctx.timeout > 0 {
 		ctx.timer = time.AfterFunc(ctx.timeout, func() {
 			err := fmt.Errorf("Script timeout")
-			ctx.Quit(err)
+			ctx.Interrupt <- func() {
+				panic(err)
+			}
+			ctx.quit <- err
 		})
 	}
 }
