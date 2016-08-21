@@ -119,7 +119,7 @@ func (ctx *Orbit) Def(name string, item interface{}) {
 }
 
 // Run executes some code. Code may be a string or a byte slice.
-func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error) {
+func (ctx *Orbit) Run(name string, code interface{}) (err error) {
 
 	defer func() {
 
@@ -149,7 +149,7 @@ func (ctx *Orbit) Run(name string, code interface{}) (val otto.Value, err error)
 	ctx.init()
 
 	// Run main code
-	val, err = main(code, name)(ctx)
+	_, err = main(code, name)(ctx)
 	if err != nil {
 		panic(err)
 	}
