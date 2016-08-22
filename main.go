@@ -15,6 +15,8 @@
 package orbit
 
 import (
+	"fmt"
+	"path"
 	"time"
 
 	"github.com/robertkrimen/otto"
@@ -66,10 +68,6 @@ func Add(name string, item interface{}) {
 	case func(*Orbit) (otto.Value, error):
 		addModule(name, what)
 	}
-}
-
-func Find(ctx *Orbit, files []string) (interface{}, string, error) {
-	return finder(ctx, files)
 }
 
 // OnInit registers a callback for when the program starts up
@@ -165,6 +163,39 @@ func (ctx *Orbit) Run(name string, code interface{}) (err error) {
 }
 
 func (ctx *Orbit) Quit(err error) {
+// File finds a file relative to the current javascript context.
+func (ctx *Orbit) File(name string, extn string) (code interface{}, file string, err error) {
+
+	var files []string
+
+	fold, _ := path.Split(ctx.Context().Filename)
+
+	if path.IsAbs(name) == true {
+		if path.Ext(name) != "" {
+			files = append(files, name)
+		}
+		if path.Ext(name) == "" {
+			files = append(files, name+"."+extn)
+		}
+	}
+
+	if path.IsAbs(name) == false {
+		if path.Ext(name) != "" {
+			files = append(files, path.Join(fold, name))
+		}
+		if path.Ext(name) == "" {
+			files = append(files, path.Join(fold, name)+"."+extn)
+		}
+	}
+
+	if code, file, err = finder(ctx, files); err != nil {
+		panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find file '%s'", name)))
+	}
+
+	return code, name, err
+
+}
+
 	panic(err)
 }
 
