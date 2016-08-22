@@ -115,6 +115,8 @@ func main(code interface{}, full string) module {
 			return val
 		})
 
+		slf, _ := module.Get("exports")
+
 		sct, err := ctx.Compile(full, script)
 		if err != nil {
 			return otto.UndefinedValue(), err
@@ -125,7 +127,7 @@ func main(code interface{}, full string) module {
 			return otto.UndefinedValue(), err
 		}
 
-		ret, err := run.Call(run, module)
+		ret, err := run.Call(slf, module)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
@@ -184,6 +186,8 @@ func exec(code interface{}, full string) module {
 			return val
 		})
 
+		slf, _ := module.Get("exports")
+
 		sct, err := ctx.Compile(full, script)
 		if err != nil {
 			return otto.UndefinedValue(), err
@@ -194,7 +198,7 @@ func exec(code interface{}, full string) module {
 			return otto.UndefinedValue(), err
 		}
 
-		ret, err := run.Call(run, module)
+		ret, err := run.Call(slf, module)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
