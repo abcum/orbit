@@ -162,7 +162,6 @@ func (ctx *Orbit) Run(name string, code interface{}) (err error) {
 
 }
 
-func (ctx *Orbit) Quit(err error) {
 // File finds a file relative to the current javascript context.
 func (ctx *Orbit) File(name string, extn string) (code interface{}, file string, err error) {
 
@@ -196,6 +195,8 @@ func (ctx *Orbit) File(name string, extn string) (code interface{}, file string,
 
 }
 
+// Quit exits the current javascript context cleanly, or with an error.
+func (ctx *Orbit) Quit(err interface{}) {
 	panic(err)
 }
 
