@@ -116,8 +116,8 @@ func (ctx *Orbit) Def(name string, item interface{}) {
 	ctx.Set(name, item)
 }
 
-// Run executes some code. Code may be a string or a byte slice.
-func (ctx *Orbit) Run(name string, code interface{}) (err error) {
+// Exec executes some code. Code may be a string or a byte slice.
+func (ctx *Orbit) Exec(name string, code interface{}) (err error) {
 
 	defer func() {
 
