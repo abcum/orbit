@@ -98,7 +98,7 @@ func main(code interface{}, full string) module {
 
 		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
-		module, _ := ctx.Object(`({})`)
+		module, _ := ctx.Object(`({ exports: {} })`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
@@ -167,7 +167,7 @@ func exec(code interface{}, full string) module {
 
 		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
-		module, _ := ctx.Object(`({})`)
+		module, _ := ctx.Object(`({ exports: {} })`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
