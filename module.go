@@ -159,6 +159,10 @@ func main(code interface{}, full string) module {
 func exec(code interface{}, full string) module {
 	return func(ctx *Orbit) (val otto.Value, err error) {
 
+		if path.Ext(full) == ".json" {
+			return ctx.Call("JSON.parse", nil, fmt.Sprintf("%s", code))
+		}
+
 		fold, file := path.Split(full)
 
 		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
