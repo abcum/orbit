@@ -26,9 +26,9 @@ type Orbit struct {
 	*otto.Otto
 	// External runtime variables.
 	Vars map[string]interface{}
-	// quit
+	// Quit channel
 	quit chan error
-	// Loop runs pending timers
+	// Loop channel
 	loop chan *task
 	// Timeout timer
 	timer *time.Timer
