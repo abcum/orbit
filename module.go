@@ -208,11 +208,6 @@ func exec(code interface{}, full string) module {
 			return otto.UndefinedValue(), err
 		}
 
-		if exp.IsFunction() {
-			val, err = module.Call("exports")
-			return
-		}
-
 		if exp.IsDefined() {
 			val = exp
 			return
