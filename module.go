@@ -96,7 +96,7 @@ func main(code interface{}, full string) module {
 
 		fold, file := path.Split(full)
 
-		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
+		script := fmt.Sprintf("%s %s %s", beg, code, end)
 
 		module, _ := ctx.Object(`({ exports: {} })`)
 
@@ -167,7 +167,7 @@ func exec(code interface{}, full string) module {
 
 		fold, file := path.Split(full)
 
-		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
+		script := fmt.Sprintf("%s %s %s", beg, code, end)
 
 		module, _ := ctx.Object(`({ exports: {} })`)
 
