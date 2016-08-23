@@ -14,12 +14,17 @@
 
 package orbit
 
+// Task is a job that can be added to the asynchronous queue.
 type Task interface {
+	// Startup is called when the task is pushed onto the queue.
 	Startup(*Orbit)
+	// Cleanup is called when the task is pulled from the queue.
 	Cleanup(*Orbit)
+	// Execute is called when the task is being called from the run loop.
 	Execute(*Orbit) error
 }
 
+// Push pushes an asynchronous task onto the queue, ensuring that the script does not finish before the task is complete.
 func (ctx *Orbit) Push(t Task) {
 	ctx.lock.Lock()
 	ctx.tasks[t] = t
@@ -27,6 +32,7 @@ func (ctx *Orbit) Push(t Task) {
 	ctx.lock.Unlock()
 }
 
+// Pull removes an asynchronous task from the queue, cleaning up any context data. If all asynchronous events are completed, the script will finish.
 func (ctx *Orbit) Pull(t Task) {
 	ctx.lock.Lock()
 	delete(ctx.tasks, t)
@@ -34,6 +40,7 @@ func (ctx *Orbit) Pull(t Task) {
 	ctx.lock.Unlock()
 }
 
+// Next signals to the run loop that an asynchronous task is ready to be run.
 func (ctx *Orbit) Next(t Task) {
 	ctx.queue <- t
 }
