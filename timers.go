@@ -15,73 +15,36 @@
 package orbit
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/robertkrimen/otto"
 )
 
-// task represents a task on the timer channel
-type task struct {
+type callback func(...interface{})
+
+type timer struct {
 	timer    *time.Timer
 	interval bool
+	callback callback
+	argument []interface{}
 	duration time.Duration
-	function otto.FunctionCall
 }
 
-func (ctx *Orbit) tick() {
-	if ctx.timeout > 0 {
-		ctx.timer = time.AfterFunc(ctx.timeout, func() {
-			err := fmt.Errorf("Script timeout")
-			ctx.Interrupt <- func() {
-				panic(err)
-			}
-			ctx.quit <- err
-		})
-	}
+func (t *timer) Startup(ctx *Orbit) {
 }
 
-func (ctx *Orbit) wait() (err error) {
+func (t *timer) Cleanup(ctx *Orbit) {
+	t.timer.Stop()
+}
 
-	for {
+func (t *timer) Execute(ctx *Orbit) (err error) {
 
-		select {
+	t.callback(t.argument...)
 
-		default:
-
-		case err := <-ctx.quit:
-
-			panic(err)
-
-		case timer := <-ctx.loop:
-
-			args := make([]interface{}, len(timer.function.ArgumentList))
-			for i, v := range timer.function.ArgumentList {
-				if i != 1 {
-					args[i] = v
-				}
-			}
-
-			if _, err := ctx.Call(`Function.call.call`, nil, args...); err != nil {
-				panic(err)
-			}
-
-			if timer.interval {
-				timer.timer.Reset(timer.duration)
-			} else {
-				delete(ctx.timers, timer)
-			}
-
-		}
-
-		if len(ctx.timers) == 0 {
-			break
-		}
-
-	}
-
-	if ctx.timer != nil {
-		ctx.timer.Stop()
+	if t.interval {
+		t.timer.Reset(t.duration)
+	} else {
+		ctx.Pull(t)
 	}
 
 	return
@@ -92,26 +55,26 @@ func init() {
 
 	OnInit(func(ctx *Orbit) {
 
-		ctx.Set("setTimeout", func(call otto.FunctionCall) otto.Value {
+		ctx.Set("setTimeout", func(call callback, delay int, args ...interface{}) otto.Value {
 
-			delay, _ := call.Argument(1).ToInteger()
 			if delay <= 0 {
 				delay = 1
 			}
 
-			timer := &task{
-				function: call,
+			timer := &timer{
+				callback: call,
+				argument: args,
 				interval: false,
 				duration: time.Duration(delay) * time.Millisecond,
 			}
 
-			ctx.timers[timer] = timer
+			ctx.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.loop <- timer
+				ctx.Next(timer)
 			})
 
-			val, err := call.Otto.ToValue(timer)
+			val, err := ctx.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -120,26 +83,26 @@ func init() {
 
 		})
 
-		ctx.Set("setInterval", func(call otto.FunctionCall) otto.Value {
+		ctx.Set("setInterval", func(call callback, delay int, args ...interface{}) otto.Value {
 
-			delay, _ := call.Argument(1).ToInteger()
 			if delay <= 0 {
 				delay = 1
 			}
 
-			timer := &task{
-				function: call,
+			timer := &timer{
+				callback: call,
+				argument: args,
 				interval: true,
 				duration: time.Duration(delay) * time.Millisecond,
 			}
 
-			ctx.timers[timer] = timer
+			ctx.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.loop <- timer
+				ctx.Next(timer)
 			})
 
-			val, err := call.Otto.ToValue(timer)
+			val, err := ctx.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -148,21 +111,22 @@ func init() {
 
 		})
 
-		ctx.Set("setImmediate", func(call otto.FunctionCall) otto.Value {
+		ctx.Set("setImmediate", func(call callback, args ...interface{}) otto.Value {
 
-			timer := &task{
-				function: call,
+			timer := &timer{
+				callback: call,
+				argument: args,
 				interval: false,
 				duration: time.Millisecond,
 			}
 
-			ctx.timers[timer] = timer
+			ctx.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.loop <- timer
+				ctx.Next(timer)
 			})
 
-			val, err := call.Otto.ToValue(timer)
+			val, err := ctx.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -172,19 +136,28 @@ func init() {
 		})
 
 		ctx.Set("clearTimeout", func(call otto.FunctionCall) otto.Value {
-			timer, _ := call.Argument(0).Export()
-			if timer, ok := timer.(*task); ok {
-				timer.timer.Stop()
-				delete(ctx.timers, timer)
+			name, _ := call.Argument(0).Export()
+			if task, ok := name.(*timer); ok {
+				task.timer.Stop()
+				ctx.Pull(task)
+			}
+			return otto.UndefinedValue()
+		})
+
+		ctx.Set("clearInterval", func(call otto.FunctionCall) otto.Value {
+			name, _ := call.Argument(0).Export()
+			if task, ok := name.(*timer); ok {
+				task.timer.Stop()
+				ctx.Pull(task)
 			}
 			return otto.UndefinedValue()
 		})
 
 		ctx.Set("clearImmediate", func(call otto.FunctionCall) otto.Value {
-			timer, _ := call.Argument(0).Export()
-			if timer, ok := timer.(*task); ok {
-				timer.timer.Stop()
-				delete(ctx.timers, timer)
+			name, _ := call.Argument(0).Export()
+			if task, ok := name.(*timer); ok {
+				task.timer.Stop()
+				ctx.Pull(task)
 			}
 			return otto.UndefinedValue()
 		})

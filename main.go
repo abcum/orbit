@@ -17,6 +17,7 @@ package orbit
 import (
 	"fmt"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/robertkrimen/otto"
@@ -28,14 +29,16 @@ type Orbit struct {
 	*otto.Otto
 	// External runtime variables.
 	Vars map[string]interface{}
+	// Lock mutex
+	lock sync.RWMutex
 	// Quit channel
-	quit chan error
+	quit chan interface{}
 	// Loop channel
-	loop chan *task
+	queue chan Task
 	// Timeout timer
 	timer *time.Timer
-	// Runtime timers
-	timers map[*task]*task
+	// Runtime tasks
+	tasks map[Task]Task
 	// Timeout sets a timeout
 	timeout time.Duration
 	// Module outputs are cached for future use.
@@ -96,9 +99,9 @@ func New(timeout time.Duration) *Orbit {
 	orbit := &Orbit{
 		Otto:    otto.New(),
 		Vars:    make(map[string]interface{}),
-		quit:    make(chan error),
-		loop:    make(chan *task),
-		timers:  make(map[*task]*task),
+		quit:    make(chan interface{}, 1),
+		queue:   make(chan Task),
+		tasks:   make(map[Task]Task),
 		modules: make(map[string]otto.Value),
 		timeout: timeout * time.Millisecond,
 	}
@@ -133,9 +136,8 @@ func (ctx *Orbit) Exec(name string, code interface{}) (err error) {
 			ctx.timer.Stop()
 		}
 
-		for timer := range ctx.timers {
-			timer.timer.Stop()
-			delete(ctx.timers, timer)
+		for task := range ctx.tasks {
+			ctx.Pull(task)
 		}
 
 	}()
@@ -153,7 +155,7 @@ func (ctx *Orbit) Exec(name string, code interface{}) (err error) {
 	}
 
 	// Wait for timers
-	err = ctx.wait()
+	err = ctx.loop()
 	if err != nil {
 		panic(err)
 	}
@@ -197,7 +199,7 @@ func (ctx *Orbit) File(name string, extn string) (code interface{}, file string,
 
 // Quit exits the current javascript context cleanly, or with an error.
 func (ctx *Orbit) Quit(err interface{}) {
-	panic(err)
+	ctx.quit <- err
 }
 
 func (ctx *Orbit) init() {
@@ -215,5 +217,17 @@ func (ctx *Orbit) exit() {
 func (ctx *Orbit) fail(err error) {
 	for _, e := range fails {
 		e(ctx, err)
+	}
+}
+
+func (ctx *Orbit) tick() {
+	if ctx.timeout > 0 {
+		ctx.timer = time.AfterFunc(ctx.timeout, func() {
+			err := fmt.Errorf("Script timeout")
+			ctx.Interrupt <- func() {
+				panic(err)
+			}
+			ctx.quit <- err
+		})
 	}
 }
