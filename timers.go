@@ -30,21 +30,21 @@ type timer struct {
 	duration time.Duration
 }
 
-func (t *timer) Startup(ctx *Orbit) {
+func (t *timer) Startup(orb *Orbit) {
 }
 
-func (t *timer) Cleanup(ctx *Orbit) {
+func (t *timer) Cleanup(orb *Orbit) {
 	t.timer.Stop()
 }
 
-func (t *timer) Execute(ctx *Orbit) (err error) {
+func (t *timer) Execute(orb *Orbit) (err error) {
 
 	t.callback(t.argument...)
 
 	if t.interval {
 		t.timer.Reset(t.duration)
 	} else {
-		ctx.Pull(t)
+		orb.Pull(t)
 	}
 
 	return
@@ -53,9 +53,9 @@ func (t *timer) Execute(ctx *Orbit) (err error) {
 
 func init() {
 
-	OnInit(func(ctx *Orbit) {
+	OnInit(func(orb *Orbit) {
 
-		ctx.Set("setTimeout", func(call callback, delay int, args ...interface{}) otto.Value {
+		orb.Set("setTimeout", func(call callback, delay int, args ...interface{}) otto.Value {
 
 			if delay <= 0 {
 				delay = 1
@@ -68,13 +68,13 @@ func init() {
 				duration: time.Duration(delay) * time.Millisecond,
 			}
 
-			ctx.Push(timer)
+			orb.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.Next(timer)
+				orb.Next(timer)
 			})
 
-			val, err := ctx.ToValue(timer)
+			val, err := orb.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -83,7 +83,7 @@ func init() {
 
 		})
 
-		ctx.Set("setInterval", func(call callback, delay int, args ...interface{}) otto.Value {
+		orb.Set("setInterval", func(call callback, delay int, args ...interface{}) otto.Value {
 
 			if delay <= 0 {
 				delay = 1
@@ -96,13 +96,13 @@ func init() {
 				duration: time.Duration(delay) * time.Millisecond,
 			}
 
-			ctx.Push(timer)
+			orb.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.Next(timer)
+				orb.Next(timer)
 			})
 
-			val, err := ctx.ToValue(timer)
+			val, err := orb.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -111,7 +111,7 @@ func init() {
 
 		})
 
-		ctx.Set("setImmediate", func(call callback, args ...interface{}) otto.Value {
+		orb.Set("setImmediate", func(call callback, args ...interface{}) otto.Value {
 
 			timer := &timer{
 				callback: call,
@@ -120,13 +120,13 @@ func init() {
 				duration: time.Millisecond,
 			}
 
-			ctx.Push(timer)
+			orb.Push(timer)
 
 			timer.timer = time.AfterFunc(timer.duration, func() {
-				ctx.Next(timer)
+				orb.Next(timer)
 			})
 
-			val, err := ctx.ToValue(timer)
+			val, err := orb.ToValue(timer)
 			if err != nil {
 				panic(err)
 			}
@@ -135,29 +135,29 @@ func init() {
 
 		})
 
-		ctx.Set("clearTimeout", func(call otto.FunctionCall) otto.Value {
+		orb.Set("clearTimeout", func(call otto.FunctionCall) otto.Value {
 			name, _ := call.Argument(0).Export()
 			if task, ok := name.(*timer); ok {
 				task.timer.Stop()
-				ctx.Pull(task)
+				orb.Pull(task)
 			}
 			return otto.UndefinedValue()
 		})
 
-		ctx.Set("clearInterval", func(call otto.FunctionCall) otto.Value {
+		orb.Set("clearInterval", func(call otto.FunctionCall) otto.Value {
 			name, _ := call.Argument(0).Export()
 			if task, ok := name.(*timer); ok {
 				task.timer.Stop()
-				ctx.Pull(task)
+				orb.Pull(task)
 			}
 			return otto.UndefinedValue()
 		})
 
-		ctx.Set("clearImmediate", func(call otto.FunctionCall) otto.Value {
+		orb.Set("clearImmediate", func(call otto.FunctionCall) otto.Value {
 			name, _ := call.Argument(0).Export()
 			if task, ok := name.(*timer); ok {
 				task.timer.Stop()
-				ctx.Pull(task)
+				orb.Pull(task)
 			}
 			return otto.UndefinedValue()
 		})

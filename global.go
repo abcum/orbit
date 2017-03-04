@@ -16,9 +16,9 @@ package orbit
 
 func init() {
 
-	OnInit(func(ctx *Orbit) {
+	OnInit(func(orb *Orbit) {
 
-		ctx.Object(`global = {}`)
+		orb.Object(`global = {}`)
 
 	})
 

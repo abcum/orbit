@@ -25,27 +25,27 @@ type Task interface {
 }
 
 // Push pushes an asynchronous task onto the queue, ensuring that the script does not finish before the task is complete.
-func (ctx *Orbit) Push(t Task) {
-	ctx.lock.Lock()
-	ctx.tasks[t] = t
-	t.Startup(ctx)
-	ctx.lock.Unlock()
+func (orb *Orbit) Push(t Task) {
+	orb.lock.Lock()
+	orb.tasks[t] = t
+	t.Startup(orb)
+	orb.lock.Unlock()
 }
 
 // Pull removes an asynchronous task from the queue, cleaning up any context data. If all asynchronous events are completed, the script will finish.
-func (ctx *Orbit) Pull(t Task) {
-	ctx.lock.Lock()
-	delete(ctx.tasks, t)
-	t.Cleanup(ctx)
-	ctx.lock.Unlock()
+func (orb *Orbit) Pull(t Task) {
+	orb.lock.Lock()
+	delete(orb.tasks, t)
+	t.Cleanup(orb)
+	orb.lock.Unlock()
 }
 
 // Next signals to the run loop that an asynchronous task is ready to be run.
-func (ctx *Orbit) Next(t Task) {
-	ctx.queue <- t
+func (orb *Orbit) Next(t Task) {
+	orb.queue <- t
 }
 
-func (ctx *Orbit) loop() (err error) {
+func (orb *Orbit) loop() (err error) {
 
 	for {
 
@@ -53,26 +53,26 @@ func (ctx *Orbit) loop() (err error) {
 
 		default:
 
-		case err := <-ctx.quit:
+		case err := <-orb.quit:
 
 			panic(err)
 
-		case task := <-ctx.queue:
+		case task := <-orb.queue:
 
-			if err := task.Execute(ctx); err != nil {
+			if err := task.Execute(orb); err != nil {
 				panic(err)
 			}
 
 		}
 
-		if len(ctx.tasks) == 0 {
+		if len(orb.tasks) == 0 {
 			break
 		}
 
 	}
 
-	if ctx.timer != nil {
-		ctx.timer.Stop()
+	if orb.timer != nil {
+		orb.timer.Stop()
 	}
 
 	return

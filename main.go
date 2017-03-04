@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"context"
+
 	"github.com/robertkrimen/otto"
 )
 
@@ -27,8 +29,7 @@ import (
 type Orbit struct {
 	// Underlying Otto instance.
 	*otto.Otto
-	// External runtime variables.
-	Vars map[string]interface{}
+	ctx context.Context
 	// Lock mutex
 	lock sync.RWMutex
 	// Quit channel
@@ -98,7 +99,6 @@ func New(timeout time.Duration) *Orbit {
 
 	orbit := &Orbit{
 		Otto:    otto.New(),
-		Vars:    make(map[string]interface{}),
 		quit:    make(chan interface{}, 1),
 		queue:   make(chan Task),
 		tasks:   make(map[Task]Task),
@@ -112,50 +112,64 @@ func New(timeout time.Duration) *Orbit {
 
 }
 
+func (orb *Orbit) Context() context.Context {
+	if orb.ctx != nil {
+		return orb.ctx
+	}
+	return context.Background()
+}
+
+func (orb *Orbit) WithContext(ctx context.Context) *Orbit {
+	nrb := new(Orbit)
+	*nrb = *orb
+	nrb.ctx = ctx
+	return nrb
+}
+
 // Def sets a global variable in the runtime
-func (ctx *Orbit) Def(name string, item interface{}) {
-	obj, _ := ctx.Get("global")
+func (orb *Orbit) Def(name string, item interface{}) {
+	obj, _ := orb.Get("global")
 	obj.Object().Set(name, item)
-	ctx.Set(name, item)
+	orb.Set(name, item)
 }
 
 // Exec executes some code. Code may be a string or a byte slice.
-func (ctx *Orbit) Exec(name string, code interface{}) (err error) {
+func (orb *Orbit) Exec(name string, code interface{}) (err error) {
 
 	defer func() {
 
 		var ok bool
 
 		if err, ok = recover().(error); ok {
-			ctx.fail(err)
+			orb.fail(err)
 		}
 
-		ctx.exit()
+		orb.exit()
 
-		if ctx.timer != nil {
-			ctx.timer.Stop()
+		if orb.timer != nil {
+			orb.timer.Stop()
 		}
 
-		for task := range ctx.tasks {
-			ctx.Pull(task)
+		for task := range orb.tasks {
+			orb.Pull(task)
 		}
 
 	}()
 
-	ctx.SetStackDepthLimit(20000)
+	orb.SetStackDepthLimit(20000)
 
-	ctx.tick()
+	orb.tick()
 
-	ctx.init()
+	orb.init()
 
 	// Run main code
-	_, err = main(code, name)(ctx)
+	_, err = main(code, name)(orb)
 	if err != nil {
 		panic(err)
 	}
 
 	// Wait for timers
-	err = ctx.loop()
+	err = orb.loop()
 	if err != nil {
 		panic(err)
 	}
@@ -165,11 +179,11 @@ func (ctx *Orbit) Exec(name string, code interface{}) (err error) {
 }
 
 // File finds a file relative to the current javascript context.
-func (ctx *Orbit) File(name string, extn string) (code interface{}, file string, err error) {
+func (orb *Orbit) File(name string, extn string) (code interface{}, file string, err error) {
 
 	var files []string
 
-	fold, _ := path.Split(ctx.Context().Filename)
+	fold, _ := path.Split(orb.Otto.Context().Filename)
 
 	if path.IsAbs(name) == true {
 		if path.Ext(name) != "" {
@@ -189,8 +203,8 @@ func (ctx *Orbit) File(name string, extn string) (code interface{}, file string,
 		}
 	}
 
-	if code, file, err = finder(ctx, files); err != nil {
-		panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find file '%s'", name)))
+	if code, file, err = finder(orb, files); err != nil {
+		panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find file '%s'", name)))
 	}
 
 	return code, name, err
@@ -198,36 +212,36 @@ func (ctx *Orbit) File(name string, extn string) (code interface{}, file string,
 }
 
 // Quit exits the current javascript context cleanly, or with an error.
-func (ctx *Orbit) Quit(err interface{}) {
-	ctx.quit <- err
+func (orb *Orbit) Quit(err interface{}) {
+	orb.quit <- err
 }
 
-func (ctx *Orbit) init() {
+func (orb *Orbit) init() {
 	for _, e := range inits {
-		e(ctx)
+		e(orb)
 	}
 }
 
-func (ctx *Orbit) exit() {
+func (orb *Orbit) exit() {
 	for _, e := range exits {
-		e(ctx)
+		e(orb)
 	}
 }
 
-func (ctx *Orbit) fail(err error) {
+func (orb *Orbit) fail(err error) {
 	for _, e := range fails {
-		e(ctx, err)
+		e(orb, err)
 	}
 }
 
-func (ctx *Orbit) tick() {
-	if ctx.timeout > 0 {
-		ctx.timer = time.AfterFunc(ctx.timeout, func() {
+func (orb *Orbit) tick() {
+	if orb.timeout > 0 {
+		orb.timer = time.AfterFunc(orb.timeout, func() {
 			err := fmt.Errorf("Script timeout")
-			ctx.Interrupt <- func() {
+			orb.Interrupt <- func() {
 				panic(err)
 			}
-			ctx.quit <- err
+			orb.quit <- err
 		})
 	}
 }

@@ -27,36 +27,36 @@ var (
 )
 
 func null() module {
-	return func(ctx *Orbit) (val otto.Value, err error) {
+	return func(orb *Orbit) (val otto.Value, err error) {
 		return otto.UndefinedValue(), nil
 	}
 }
 
 func load(name string, fold string) module {
-	return func(ctx *Orbit) (val otto.Value, err error) {
+	return func(orb *Orbit) (val otto.Value, err error) {
 
 		// Check loaded modules
-		if module, ok := ctx.modules[name]; ok {
+		if module, ok := orb.modules[name]; ok {
 			return module, nil
 		}
 
 		// Check global modules
 		if module, ok := modules[name]; ok {
-			return module(ctx)
+			return module(orb)
 		}
 
-		ctx.modules[name], err = find(name, fold)(ctx)
+		orb.modules[name], err = find(name, fold)(orb)
 
-		return ctx.modules[name], err
+		return orb.modules[name], err
 
 	}
 }
 
 func find(name string, fold string) module {
-	return func(ctx *Orbit) (val otto.Value, err error) {
+	return func(orb *Orbit) (val otto.Value, err error) {
 
 		if len(name) == 0 {
-			panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
+			panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
 		}
 
 		var files []string
@@ -81,24 +81,24 @@ func find(name string, fold string) module {
 			}
 		}
 
-		code, file, err := finder(ctx, files)
+		code, file, err := finder(orb, files)
 		if err != nil {
-			panic(ctx.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
+			panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
 		}
 
-		return exec(code, file)(ctx)
+		return exec(code, file)(orb)
 
 	}
 }
 
 func main(code interface{}, full string) module {
-	return func(ctx *Orbit) (val otto.Value, err error) {
+	return func(orb *Orbit) (val otto.Value, err error) {
 
 		fold, file := path.Split(full)
 
 		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
-		module, _ := ctx.Object(`({ exports: {} })`)
+		module, _ := orb.Object(`({ exports: {} })`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
@@ -108,7 +108,7 @@ func main(code interface{}, full string) module {
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
-			val, err := load(arg, fold)(ctx)
+			val, err := load(arg, fold)(orb)
 			if err != nil {
 				panic(err)
 			}
@@ -117,12 +117,12 @@ func main(code interface{}, full string) module {
 
 		slf, _ := module.Get("exports")
 
-		sct, err := ctx.Compile(full, script)
+		sct, err := orb.Compile(full, script)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
 
-		run, err := ctx.Otto.Run(sct)
+		run, err := orb.Otto.Run(sct)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
@@ -159,17 +159,17 @@ func main(code interface{}, full string) module {
 }
 
 func exec(code interface{}, full string) module {
-	return func(ctx *Orbit) (val otto.Value, err error) {
+	return func(orb *Orbit) (val otto.Value, err error) {
 
 		if path.Ext(full) == ".json" {
-			return ctx.Call("JSON.parse", nil, fmt.Sprintf("%s", code))
+			return orb.Call("JSON.parse", nil, fmt.Sprintf("%s", code))
 		}
 
 		fold, file := path.Split(full)
 
 		script := fmt.Sprintf("%s\n%s\n%s", beg, code, end)
 
-		module, _ := ctx.Object(`({ exports: {} })`)
+		module, _ := orb.Object(`({ exports: {} })`)
 
 		module.Set("id", full)
 		module.Set("loaded", true)
@@ -179,7 +179,7 @@ func exec(code interface{}, full string) module {
 
 		module.Set("require", func(call otto.FunctionCall) otto.Value {
 			arg := call.Argument(0).String()
-			val, err := load(arg, fold)(ctx)
+			val, err := load(arg, fold)(orb)
 			if err != nil {
 				panic(err)
 			}
@@ -188,12 +188,12 @@ func exec(code interface{}, full string) module {
 
 		slf, _ := module.Get("exports")
 
-		sct, err := ctx.Compile(full, script)
+		sct, err := orb.Compile(full, script)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
 
-		run, err := ctx.Otto.Run(sct)
+		run, err := orb.Otto.Run(sct)
 		if err != nil {
 			return otto.UndefinedValue(), err
 		}
