@@ -20,12 +20,10 @@ import (
 	"github.com/robertkrimen/otto"
 )
 
-type callback func(...interface{})
-
 type timer struct {
 	timer    *time.Timer
 	interval bool
-	callback callback
+	callback otto.Value
 	argument []interface{}
 	duration time.Duration
 }
@@ -39,7 +37,7 @@ func (t *timer) Cleanup(orb *Orbit) {
 
 func (t *timer) Execute(orb *Orbit) (err error) {
 
-	t.callback(t.argument...)
+	t.callback.Call(t.callback, t.argument...)
 
 	if t.interval {
 		t.timer.Reset(t.duration)
@@ -55,7 +53,7 @@ func init() {
 
 	OnInit(func(orb *Orbit) {
 
-		orb.Set("setTimeout", func(call callback, delay int, args ...interface{}) otto.Value {
+		orb.Set("setTimeout", func(call otto.Value, delay int, args ...interface{}) otto.Value {
 
 			if delay <= 0 {
 				delay = 1
@@ -83,7 +81,7 @@ func init() {
 
 		})
 
-		orb.Set("setInterval", func(call callback, delay int, args ...interface{}) otto.Value {
+		orb.Set("setInterval", func(call otto.Value, delay int, args ...interface{}) otto.Value {
 
 			if delay <= 0 {
 				delay = 1
@@ -111,7 +109,7 @@ func init() {
 
 		})
 
-		orb.Set("setImmediate", func(call callback, args ...interface{}) otto.Value {
+		orb.Set("setImmediate", func(call otto.Value, args ...interface{}) otto.Value {
 
 			timer := &timer{
 				callback: call,
