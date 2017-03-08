@@ -29,6 +29,7 @@ import (
 type Orbit struct {
 	// Underlying Otto instance.
 	*otto.Otto
+	// Context
 	ctx context.Context
 	// Lock mutex
 	lock sync.RWMutex
