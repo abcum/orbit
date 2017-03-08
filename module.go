@@ -55,6 +55,10 @@ func load(name string, fold string) module {
 func find(name string, fold string) module {
 	return func(orb *Orbit) (val otto.Value, err error) {
 
+		if finder == nil {
+			panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
+		}
+
 		if len(name) == 0 {
 			panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find module '%s'", name)))
 		}

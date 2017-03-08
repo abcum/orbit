@@ -204,6 +204,10 @@ func (orb *Orbit) File(name string, extn string) (code interface{}, file string,
 		}
 	}
 
+	if finder == nil {
+		panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find file '%s'", name)))
+	}
+
 	if code, file, err = finder(orb, files); err != nil {
 		panic(orb.MakeCustomError("Error", fmt.Sprintf("Cannot find file '%s'", name)))
 	}
