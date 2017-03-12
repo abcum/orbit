@@ -48,7 +48,9 @@ type Orbit struct {
 }
 
 type (
-	// Module is a javascript module
+	// simple is a javascript module
+	simple func(*Orbit) interface{}
+	// module is a javascript module
 	module func(*Orbit) (otto.Value, error)
 )
 
@@ -67,11 +69,15 @@ var (
 func Add(name string, item interface{}) {
 	switch what := item.(type) {
 	case string:
-		addSource(name, what)
+		modules[name] = exec(what, name)
 	case []byte:
-		addSource(name, what)
+		modules[name] = exec(what, name)
 	case func(*Orbit) (otto.Value, error):
-		addModule(name, what)
+		modules[name] = what
+	case func(*Orbit) interface{}:
+		modules[name] = func(orb *Orbit) (otto.Value, error) {
+			return orb.ToValue(what(orb))
+		}
 	}
 }
 
