@@ -145,10 +145,13 @@ func (orb *Orbit) Exec(name string, code interface{}) (err error) {
 
 	defer func() {
 
-		var ok bool
-
-		if err, ok = recover().(error); ok {
-			orb.fail(err)
+		if r := recover(); r != nil {
+			switch e := r.(type) {
+			case error:
+				orb.fail(e)
+			case string:
+				orb.fail(fmt.Errorf(e))
+			}
 		}
 
 		orb.exit()
