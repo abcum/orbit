@@ -37,7 +37,7 @@ func (t *timer) Cleanup(orb *Orbit) {
 
 func (t *timer) Execute(orb *Orbit) (err error) {
 
-	t.callback.Call(t.callback, t.argument...)
+	_, err = t.callback.Call(t.callback, t.argument...)
 
 	if t.interval {
 		t.timer.Reset(t.duration)
