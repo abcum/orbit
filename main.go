@@ -148,10 +148,11 @@ func (orb *Orbit) Exec(name string, code interface{}) (err error) {
 		if r := recover(); r != nil {
 			switch e := r.(type) {
 			case error:
-				orb.fail(e)
+				err = e
 			case string:
-				orb.fail(fmt.Errorf(e))
+				err = fmt.Errorf(e)
 			}
+			orb.fail(err)
 		}
 
 		orb.exit()
@@ -226,8 +227,8 @@ func (orb *Orbit) File(name string, extn string) (code interface{}, file string,
 }
 
 // Quit exits the current javascript context cleanly, or with an error.
-func (orb *Orbit) Quit(err interface{}) {
-	orb.quit <- err
+func (orb *Orbit) Quit(err error) {
+	panic(orb.MakeCustomError("Error", err.Error()))
 }
 
 func (orb *Orbit) init() {
