@@ -22,6 +22,8 @@ import (
 
 	"context"
 
+	"github.com/abcum/emitr"
+
 	"github.com/robertkrimen/otto"
 )
 
@@ -29,6 +31,8 @@ import (
 type Orbit struct {
 	// Underlying Otto instance.
 	*otto.Otto
+	// Emitter
+	*emitr.Emitter
 	// Context
 	ctx context.Context
 	// Lock mutex
@@ -111,6 +115,7 @@ func New(timeout time.Duration) *Orbit {
 		tasks:   make(map[Task]Task),
 		modules: make(map[string]otto.Value),
 		timeout: timeout * time.Millisecond,
+		Emitter: &emitr.Emitter{},
 	}
 
 	orbit.Interrupt = make(chan func(), 1)
@@ -232,18 +237,21 @@ func (orb *Orbit) Quit(err error) {
 }
 
 func (orb *Orbit) init() {
+	orb.Emit("init")
 	for _, e := range inits {
 		e(orb)
 	}
 }
 
 func (orb *Orbit) exit() {
+	orb.Emit("exit")
 	for _, e := range exits {
 		e(orb)
 	}
 }
 
 func (orb *Orbit) fail(err error) {
+	orb.Emit("fail")
 	for _, e := range fails {
 		e(orb, err)
 	}
