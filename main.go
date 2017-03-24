@@ -95,7 +95,7 @@ func OnExit(call func(*Orbit)) {
 	exits = append(exits, call)
 }
 
-// OnFail registers a callback for when the program encounters and error
+// OnFail registers a callback for when the program encounters an error
 func OnFail(call func(*Orbit, error)) {
 	fails = append(fails, call)
 }
