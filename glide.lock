@@ -1,8 +1,10 @@
-hash: 63c0f2ffad68bda8f7a0bb8fca62a95242d254d25faf14169e73534f202d3ddf
-updated: 2017-03-04T22:44:47.786089008Z
+hash: 7730ce5922d248289eeda1a9db156ed93bc6a1e7943963a04ac3d8bc04b058c2
+updated: 2017-06-18T10:33:30.496558023+01:00
 imports:
+- name: github.com/abcum/emitr
+  version: a1f6c05c745df9f5135bd0b94952a9c8ab56159a
 - name: github.com/robertkrimen/otto
-  version: 6a77b7cbc37d0c39f7d5fa5766826e541df31fd5
+  version: 49fee9c1c0db1c366003ede4cc665f9924a97521
   subpackages:
   - ast
   - dbg
