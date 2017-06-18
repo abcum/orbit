@@ -2,7 +2,7 @@
 
 A Node.js lambda environment library for Go (Golang).
 
-[![](https://img.shields.io/badge/status-beta-ff00bb.svg?style=flat-square)](https://github.com/abcum/orbit) [![](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/abcum/orbit) [![](https://goreportcard.com/badge/github.com/abcum/orbit?style=flat-square)](https://goreportcard.com/report/github.com/abcum/orbit) [![](https://img.shields.io/badge/license-Apache_License_2.0-00bfff.svg?style=flat-square)](https://github.com/abcum/orbit) 
+[![](https://img.shields.io/circleci/token/8afe7f574bd280505a0e7b76cc56f3569f89bb62/project/abcum/orbit/master.svg?style=flat-square)](https://circleci.com/gh/abcum/orbit) [![](https://img.shields.io/badge/status-beta-ff00bb.svg?style=flat-square)](https://github.com/abcum/orbit) [![](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/abcum/orbit) [![](https://goreportcard.com/badge/github.com/abcum/orbit?style=flat-square)](https://goreportcard.com/report/github.com/abcum/orbit) [![](https://img.shields.io/coveralls/abcum/orbit/master.svg?style=flat-square)](https://coveralls.io/github/abcum/orbit?branch=master) [![](https://img.shields.io/badge/license-Apache_License_2.0-00bfff.svg?style=flat-square)](https://github.com/abcum/orbit) 
 
 #### Features
 
