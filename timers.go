@@ -17,7 +17,7 @@ package orbit
 import (
 	"time"
 
-	"github.com/robertkrimen/otto"
+	"github.com/abcum/otto"
 )
 
 type timer struct {

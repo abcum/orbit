@@ -23,8 +23,7 @@ import (
 	"context"
 
 	"github.com/abcum/emitr"
-
-	"github.com/robertkrimen/otto"
+	"github.com/abcum/otto"
 )
 
 // Orbit is a node.go context.

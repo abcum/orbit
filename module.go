@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/robertkrimen/otto"
+	"github.com/abcum/otto"
 )
 
 var (

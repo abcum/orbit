@@ -1,4 +1,0 @@
-package: github.com/abcum/orbit
-import:
-- package: github.com/abcum/emitr
-- package: github.com/robertkrimen/otto
